@@ -1,106 +1,64 @@
 import { Component, OnInit } from '@angular/core';
 import { PokeApiService } from '../services/poke-api.service';
-import { NgIf } from '@angular/common';
+import { ViaCEPService } from '../services/via-cep.service';
 
 @Component({
   selector: 'app-tab1',
   templateUrl: 'tab1.page.html',
-  styleUrls: ['tab1.page.scss'],
+  styleUrls: ['tab1.page.scss']
 })
-export class Tab1Page implements OnInit {
-  public pokemons: any[] = [];
-  public fraquezas: any[] = [];
 
-  public valorSearch: string;
-  private loading = false;
+export class Tab1Page{
+  areaBuscarPokemon:string='53300010';
+  areaBusca:any={
+    bairro : '',
+    localidade : '',
+    logradouro : '',
+    uf:''
+  };
+  public pokemon:any={
+    name:'',
+    image:'',
+    abilities:'',
+    height:'',
+    weight:''
 
-  constructor(private pokeApiService: PokeApiService) {}
-
-  async ngOnInit() {
-    this.getPokemons();
   }
 
-  async getPokemons() {
-    this.pokemons = await this.pokeApiService.getPokeDados();
-  }
+  constructor(
+    private pokeApiService:PokeApiService,
+    private viaCEPService:ViaCEPService
+  ){}
 
-  async loadData(event) {
-    if (this.loading === true) {
-      return;
-    }
-    this.loading = true;
-    await this.getPokemons();
-    this.loading = false;
-    event.target.complete();
-  }
-
-  async pesquisar(event) {
-   if(this.valorSearch && this.valorSearch.trim( ) !== ''){
-    console.log(await this.pokeApiService.getPokebyName(this.valorSearch));
-   }
-  }
-
-  async pokeFraqueza(types){
-    this.fraquezas=[];
-    if (types[1]){
-      for(const type of await this.pokeApiService.getFraqueza(types[0].type.name)){
-        let verificacao = true;
-        for(const aaa of await this.pokeApiService.getFraqueza(types[1].type.name)){
-          if (aaa.name === type.name){
-            verificacao = false;
-          }
-        }
-        for(const aaa of await this.pokeApiService.getMetade(types[1].type.name)){
-          if (aaa.name === type.name){
-            verificacao = false;
-          }
-        }
-        for(const aaa of await this.pokeApiService.getNulo(types[1].type.name)){
-          if (aaa.name === type.name){
-            verificacao = false;
-          }
-        }
-        if(verificacao){
-          this.fraquezas.push(type);
-        }
-      }
-
-      for(const type of await this.pokeApiService.getFraqueza(types[1].type.name)){
-        let verificacao = true;
-        for(const aaa of await this.pokeApiService.getFraqueza(types[0].type.name)){
-          if (aaa.name === type.name){
-            verificacao = false;
-          }
-        }
-        for(const aaa of await this.pokeApiService.getMetade(types[0].type.name)){
-          if (aaa.name === type.name){
-            verificacao = false;
-          }
-        }
-        for(const aaa of await this.pokeApiService.getNulo(types[0].type.name)){
-          if (aaa.name === type.name){
-            verificacao = false;
-          }
-        }
-        if(verificacao){
-          this.fraquezas.push(type);
-        }
-      }
-    }
-    else {
-      this.fraquezas.push(...( await this.pokeApiService.getFraqueza(types[0].type.name)));
-    }
+  buscarPokemon(areaBuscarPokemon:string){
+    this.viaCEPService.getViaCEPService(areaBuscarPokemon)
+      .subscribe((value)=>{
+        this.areaBusca.logradouro = JSON.parse(JSON.stringify(value))['logradouro'];
+        this.areaBusca.bairro = ', '+JSON.parse(JSON.stringify(value))['bairro'];
+        this.areaBusca.localidade = ' - '+JSON.parse(JSON.stringify(value))['localidade'];
+        this.areaBusca.uf = '-'+JSON.parse(JSON.stringify(value))['uf'];
+      });
+      this.pokeApiService.getPokeApiService()
+      .subscribe((value)=>{
+        this.pokemon.weight = JSON.parse(JSON.stringify(value))['weight'];
+        this.pokemon.name = JSON.parse(JSON.stringify(value))['name'];
+        this.pokemon.height = JSON.parse(JSON.stringify(value))['height'];
+        this.pokemon.abilities = JSON.parse(JSON.stringify(value))['abilities'].length;
+        this.pokemon.image = JSON.parse(JSON.stringify(value))['sprites'].other.dream_world.front_default;
+        this.pokeApiService.pokemon.name = JSON.parse(JSON.stringify(value))['name'];
+        this.pokeApiService.pokemon.image = JSON.parse(JSON.stringify(value))['sprites'].other.dream_world.front_default;
+        //
+        this.pokeApiService.lastPokemonAbility = this.pokemon.abilities;
+        this.pokeApiService.pokemon.vitorias = 0
+        this.pokeApiService.pokemon.derrotas = 0
+        this.pokeApiService.pokemon.empates = 0
+        this.pokeApiService.pokemons.push({
+          name:JSON.parse(JSON.stringify(value))['name'],
+          image:JSON.parse(JSON.stringify(value))['sprites'].other.dream_world.front_default,
+          vitorias:0,
+          empates:0,
+          derrotas:0
+        })
+      });
   }
 }
-
-const poke = {
-  wins: 0,
-};
-function generateRandomNumber(): number {
-  return Math.floor(Math.random() * 21); 
-}
-
-poke.wins = generateRandomNumber();
-
-
-console.log(`Número aleatório gerado: ${poke.wins}`);
